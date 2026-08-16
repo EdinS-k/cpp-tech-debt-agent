@@ -1,0 +1,13 @@
+# 项目依赖，带版本注释
+langchain==0.3.7
+langgraph==0.2.40
+langchain-openai==0.2.11
+chromadb==0.5.11          # 仅用于本地 embedding 模型（不再当向量库用）
+pyodbc>=5.0               # 连接 SQL Server（结构化长期记忆）
+rank-bm25==0.2.2          # BM25 关键词检索（混合检索的稀疏路）
+python-dotenv==1.0.1      # 读取.env
+fastapi==0.115.6          # Web服务
+uvicorn==0.32.0           # ASGI服务器，运行fastapi
+sse-starlette==2.1.3      # SSE流式输出
+pydantic==2.9.2
+              # 内置，不用安装
