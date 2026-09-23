@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>技术债务多Agent分析</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --panel: #151821;
+    --panel-2: #1b1f2b;
+    --border: #262c3a;
+    --text: #e8ebf2;
+    --dim: #8b93a7;
+    --accent: #4f8cff;
+    --purple: #7c5cff;
+    --green: #2fce7a;
+    --orange: #ff9f43;
+    --red: #ff5d6c;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(79,140,255,0.14), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(124,92,255,0.12), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 880px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 头部 ===== */
+  .header {
+    padding: 16px 24px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(21,24,33,0.75);
+    backdrop-filter: blur(10px);
+  }
+  .logo {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 6px 20px rgba(79,140,255,0.35);
+    flex: 0 0 auto;
+  }
+  .header h1 { font-size: 17px; font-weight: 600; letter-spacing: .2px; }
+  .header .sub { font-size: 12px; color: var(--dim); margin-top: 3px; }
+
+  #newChat {
+    margin-left: auto;
+    flex: 0 0 auto;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  #newChat:hover { border-color: var(--accent); color: var(--accent); }
+
+  .status {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; color: var(--dim);
+    background: var(--panel-2);
+    padding: 7px 12px; border-radius: 999px;
+    border: 1px solid var(--border);
+    flex: 0 0 auto;
+  }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); transition: background .2s; }
+  .status.busy .dot { background: var(--orange); animation: pulse 1s infinite; }
+  .status.error .dot { background: var(--red); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+  /* ===== 流程步骤条 ===== */
+  .steps {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(21,24,33,0.4);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .step {
+    font-size: 12px; color: var(--dim);
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    transition: all .2s;
+  }
+  .step .n {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--panel-2); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--dim);
+    transition: all .2s;
+  }
+  .step.active { color: var(--text); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .step.active .n { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .step.done { color: var(--text); }
+  .step.done .n { background: var(--green); color: #fff; border-color: var(--green); }
+  .arrow { color: var(--dim); font-size: 12px; flex: 0 0 auto; }
+
+  /* ===== 聊天区 ===== */
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .chat::-webkit-scrollbar { width: 8px; }
+  .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+  .chat::-webkit-scrollbar-track { background: transparent; }
+
+  .msg { display: flex; gap: 12px; max-width: 86%; }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+
+  .avatar {
+    flex: 0 0 auto;
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    background: var(--panel-2); border: 1px solid var(--border);
+  }
+  .msg.user .avatar {
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    border: none;
+  }
+
+  .bubble-wrap { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .bubble-label { font-size: 12px; color: var(--dim); font-weight: 500; }
+  .msg.user .bubble-label { text-align: right; }
+
+  .bubble {
+    padding: 12px 15px;
+    border-radius: 4px 16px 16px 16px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user .bubble {
+    border-radius: 16px 4px 16px 16px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    border: none;
+    color: #fff;
+  }
+  .bubble .cursor {
+    display: inline-block; width: 2px; height: 15px;
+    background: var(--accent); vertical-align: -2px;
+    margin-left: 2px; animation: blink .8s infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* Markdown 渲染样式 */
+  .bubble h2, .bubble h3, .bubble h4 { margin: 12px 0 6px; font-weight: 600; line-height: 1.4; }
+  .bubble h2:first-child, .bubble h3:first-child, .bubble h4:first-child,
+  .bubble p:first-child, .bubble ul:first-child, .bubble ol:first-child { margin-top: 0; }
+  .bubble h2 { font-size: 16px; }
+  .bubble h3 { font-size: 15px; }
+  .bubble h4 { font-size: 14px; }
+  .bubble p { margin: 4px 0; }
+  .bubble ul, .bubble ol { margin: 4px 0 4px 22px; padding: 0; }
+  .bubble li { margin: 3px 0; }
+  .bubble strong { color: #fff; }
+  .bubble code {
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
+    font-size: 13px; background: rgba(255,255,255,0.08);
+    padding: 1px 6px; border-radius: 5px;
+  }
+  .bubble pre {
+    background: #0b0d12; border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; margin: 8px 0; overflow-x: auto;
+  }
+  .bubble pre code { background: none; padding: 0; }
+  .bubble hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+
+  /* 打字指示器 */
+  .typing { display: flex; gap: 5px; padding: 14px 15px; }
+  .typing span {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--dim);
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: .15s; }
+  .typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity:.5; } 30% { transform: translateY(-5px); opacity:1; } }
+
+  /* 欢迎语 */
+  .system {
+    align-self: center;
+    text-align: center;
+    color: var(--dim);
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 12px 16px;
+  }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+  .chip {
+    font-size: 13px; color: var(--text);
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    cursor: pointer; transition: all .15s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== 输入栏 ===== */
+  .composer {
+    padding: 14px 24px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(21,24,33,0.75);
+    backdrop-filter: blur(10px);
+  }
+  .composer-inner {
+    display: flex; gap: 10px; align-items: flex-end;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 10px 10px 10px 16px;
+    transition: border-color .15s;
+  }
+  .composer-inner:focus-within { border-color: var(--accent); }
+  textarea {
+    flex: 1;
+    background: transparent; border: none; outline: none; resize: none;
+    color: var(--text); font-size: 14px; font-family: inherit;
+    line-height: 1.5; max-height: 140px;
+  }
+  textarea::placeholder { color: var(--dim); }
+  #send {
+    flex: 0 0 auto;
+    height: 38px; min-width: 44px;
+    border: none; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    color: #fff; font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 14px;
+    transition: opacity .15s, transform .1s;
+  }
+  #send:hover { opacity: .9; }
+  #send:active { transform: scale(.95); }
+  #send:disabled { opacity: .4; cursor: not-allowed; }
+  #uploadBtn {
+    flex: 0 0 auto;
+    height: 38px; width: 40px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  #uploadBtn:hover { border-color: var(--accent); }
+  .target-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px; padding: 8px 12px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; font-size: 13px; color: var(--text);
+  }
+  #targetText { flex: 1; }
+  #removeFile {
+    flex: 0 0 auto;
+    background: transparent; border: none; color: var(--dim);
+    font-size: 18px; cursor: pointer; line-height: 1;
+  }
+  #removeFile:hover { color: var(--red); }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo">🧠</div>
+      <div>
+        <h1>技术债务多Agent分析</h1>
+        <div class="sub">LangGraph · 代码解析 → 风险评估 → 总结</div>
+      </div>
+      <button id="newChat" title="开始新会话">新会话</button>
+      <div class="status" id="status"><span class="dot"></span><span id="statusText">就绪</span></div>
+    </header>
+
+    <div class="steps">
+      <span class="step" data-step="parse_result"><span class="n">1</span>代码解析</span>
+      <span class="arrow">→</span>
+      <span class="step" data-step="risk_result"><span class="n">2</span>风险评估</span>
+      <span class="arrow">→</span>
+      <span class="step" data-step="final_report"><span class="n">3</span>总结报告</span>
+    </div>
+
+    <main class="chat" id="chat"></main>
+
+    <footer class="composer">
+      <div class="target-bar" id="targetBar">
+        <span id="targetText">📁 当前分析：test_demo/main.cpp（本地示例）</span>
+        <button id="removeFile" title="移除上传的文件" style="display:none">×</button>
+      </div>
+      <div class="composer-inner">
+        <button id="uploadBtn" title="上传代码文件">📎</button>
+        <textarea id="input" rows="1" placeholder="问一个技术债务问题…"></textarea>
+        <button id="send" title="发送">➤</button>
+      </div>
+    </footer>
+  </div>
+
+<script>
+(function () {
+  const chat = document.getElementById('chat');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('send');
+  const newChatBtn = document.getElementById('newChat');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const targetText = document.getElementById('targetText');
+  const removeFileBtn = document.getElementById('removeFile');
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('statusText');
+
+  const NODES = {
+    parse_result:  { label: '代码解析 Agent', icon: '🔍', accent: '#4f8cff' },
+    risk_result:   { label: '风险评估 Agent', icon: '⚠️', accent: '#ff9f43' },
+    final_report:  { label: '总结 Agent',     icon: '📋', accent: '#2fce7a' }
+  };
+  const ORDER = ['parse_result', 'risk_result', 'final_report'];
+
+  let busy = false;
+  let typingRow = null;
+
+  let threadId = (function () {
+    let id = localStorage.getItem('ds_thread_id');
+    if (!id) {
+      id = 'thr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem('ds_thread_id', id);
+    }
+    return id;
+  })();
+
+  const scrollBottom = () => { chat.scrollTop = chat.scrollHeight; };
+
+  function setStatus(mode, text) {
+    statusEl.className = 'status' + (mode ? ' ' + mode : '');
+    statusText.textContent = text;
+  }
+
+  function setStep(key, state) {
+    const el = document.querySelector('.step[data-step="' + key + '"]');
+    if (el) el.className = state ? 'step ' + state : 'step';
+  }
+  function resetSteps() {
+    document.querySelectorAll('.step').forEach(s => { s.className = 'step'; });
+  }
+
+  function addWelcome() {
+    const wrap = document.createElement('div');
+    wrap.className = 'system';
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:22px;margin-bottom:6px';
+    title.textContent = '👋';
+    const line = document.createElement('div');
+    line.textContent = '我是技术债务分析助手。默认分析 test_demo/main.cpp，也可以点 📎 上传你自己的代码文件。';
+    const chips = document.createElement('div');
+    chips.className = 'chips';
+    [
+      ['🔎 分析技术债务', '分析这个C++代码的技术债务'],
+      ['⚠️ 内存安全风险', '这段代码有哪些内存安全问题？'],
+      ['🛠️ 重构建议', '给出重构建议']
+    ].forEach(([label, q]) => {
+      const c = document.createElement('span');
+      c.className = 'chip';
+      c.textContent = label;
+      c.dataset.q = q;
+      chips.appendChild(c);
+    });
+    wrap.appendChild(title);
+    wrap.appendChild(line);
+    wrap.appendChild(chips);
+    chat.appendChild(wrap);
+    scrollBottom();
+  }
+
+  function addUser(text) {
+    const row = document.createElement('div');
+    row.className = 'msg user';
+    row.innerHTML = '<div class="avatar">🧑‍💻</div><div class="bubble-wrap"><div class="bubble-label">你</div><div class="bubble"></div></div>';
+    row.querySelector('.bubble').textContent = text;
+    chat.appendChild(row);
+    scrollBottom();
+  }
+
+  function addAgentBubble(key, text) {
+    const meta = NODES[key] || { label: 'Agent', icon: '🤖', accent: '#8b93a7' };
+    const row = document.createElement('div');
+    row.className = 'msg agent';
+    row.innerHTML =
+      '<div class="avatar" style="color:' + meta.accent + '">' + meta.icon + '</div>' +
+      '<div class="bubble-wrap">' +
+        '<div class="bubble-label" style="color:' + meta.accent + '">' + meta.label + '</div>' +
+        '<div class="bubble" style="border-left:3px solid ' + meta.accent + '"></div>' +
+      '</div>';
+    const bubble = row.querySelector('.bubble');
+    chat.appendChild(row);
+    scrollBottom();
+    typewriter(bubble, text);
+  }
+
+  function addError(text) {
+    const row = document.createElement('div');
+    row.className = 'msg agent';
+    row.innerHTML =
+      '<div class="avatar" style="color:#ff5d6c">❌</div>' +
+      '<div class="bubble-wrap">' +
+        '<div class="bubble-label" style="color:#ff5d6c">系统</div>' +
+        '<div class="bubble" style="border-left:3px solid #ff5d6c"></div>' +
+      '</div>';
+    row.querySelector('.bubble').textContent = text;
+    chat.appendChild(row);
+    scrollBottom();
+  }
+
+  function setTyping(label) {
+    if (typingRow && typingRow.isConnected) {
+      typingRow.querySelector('.bubble-label').textContent = label;
+    } else {
+      typingRow = document.createElement('div');
+      typingRow.className = 'msg agent';
+      typingRow.innerHTML =
+        '<div class="avatar">🤖</div>' +
+        '<div class="bubble-wrap">' +
+          '<div class="bubble-label">' + label + '</div>' +
+          '<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>' +
+        '</div>';
+      chat.appendChild(typingRow);
+    }
+    scrollBottom();
+  }
+  function clearTyping() {
+    if (typingRow) { typingRow.remove(); typingRow = null; }
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function inlineMd(s) {
+    return s
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  }
+
+  function renderMarkdown(md) {
+    if (!md) return '';
+    const lines = escapeHtml(md).split('\n');
+    const out = [];
+    let listTag = null;
+    let codeBuf = null;
+
+    const closeList = () => { if (listTag) { out.push('</' + listTag + '>'); listTag = null; } };
+
+    for (const raw of lines) {
+      const line = raw.replace(/\r$/, '');
+
+      // 代码块 ```...```
+      if (/^\s*```/.test(line)) {
+        if (codeBuf === null) { closeList(); codeBuf = []; }
+        else { out.push('<pre><code>' + codeBuf.join('\n') + '</code></pre>'); codeBuf = null; }
+        continue;
+      }
+      if (codeBuf !== null) { codeBuf.push(line); continue; }
+
+      if (!line.trim()) { closeList(); continue; }
+
+      const h = line.match(/^(#{1,3})\s+(.*)$/);
+      if (h) {
+        closeList();
+        const tag = 'h' + (h[1].length + 1);
+        out.push('<' + tag + '>' + inlineMd(h[2]) + '</' + tag + '>');
+        continue;
+      }
+
+      if (/^\s*[-*_]{3,}\s*$/.test(line)) { closeList(); out.push('<hr>'); continue; }
+
+      const ul = line.match(/^\s*[-*+]\s+(.*)$/);
+      if (ul) {
+        if (listTag !== 'ul') { closeList(); out.push('<ul>'); listTag = 'ul'; }
+        out.push('<li>' + inlineMd(ul[1]) + '</li>');
+        continue;
+      }
+
+      const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+      if (ol) {
+        if (listTag !== 'ol') { closeList(); out.push('<ol>'); listTag = 'ol'; }
+        out.push('<li>' + inlineMd(ol[1]) + '</li>');
+        continue;
+      }
+
+      closeList();
+      out.push('<p>' + inlineMd(line) + '</p>');
+    }
+
+    closeList();
+    if (codeBuf !== null) out.push('<pre><code>' + codeBuf.join('\n') + '</code></pre>');
+    return out.join('');
+  }
+
+  function typewriter(el, text) {
+    const total = text.length;
+    if (!total) return;
+    const step = Math.max(2, Math.ceil(total / 60));
+    let i = 0;
+    el.textContent = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    el.appendChild(cursor);
+    const timer = setInterval(() => {
+      i = Math.min(total, i + step);
+      el.textContent = text.slice(0, i);
+      el.appendChild(cursor);
+      scrollBottom();
+      if (i >= total) {
+        clearInterval(timer);
+        cursor.remove();
+        el.innerHTML = renderMarkdown(text);
+        scrollBottom();
+      }
+    }, 18);
+  }
+
+  function markStep(key) {
+    const idx = ORDER.indexOf(key);
+    ORDER.forEach((k, i) => {
+      if (i < idx) setStep(k, 'done');
+      else if (i === idx) setStep(k, 'active');
+      else setStep(k, '');
+    });
+  }
+
+  function finishRun(ok) {
+    busy = false;
+    sendBtn.disabled = false;
+    input.disabled = false;
+    setStatus(ok ? 'ok' : 'error', ok ? '分析完成' : '分析失败');
+    input.focus();
+  }
+
+  function send(query) {
+    if (busy) return;
+    const q = query || input.value.trim() || '分析这个C++代码的技术债务';
+    if (!query) input.value = '';
+
+    addUser(q);
+    busy = true;
+    sendBtn.disabled = true;
+    input.disabled = true;
+    input.style.height = 'auto';
+    resetSteps();
+    setStep('parse_result', 'active');
+    setStatus('busy', '分析中…');
+    setTyping('代码解析 Agent 思考中…');
+
+    let finished = false;
+    let failed = false;
+    let url = '/analyze?query=' + encodeURIComponent(q) + '&thread_id=' + encodeURIComponent(threadId);
+    if (uploadedFile) url += '&file_id=' + encodeURIComponent(uploadedFile.file_id);
+    const source = new EventSource(url);
+
+    source.addEventListener('parse_result', e => {
+      markStep('parse_result');
+      clearTyping();
+      addAgentBubble('parse_result', JSON.parse(e.data));
+      setTyping('风险评估 Agent 思考中…');
+    });
+    source.addEventListener('risk_result', e => {
+      markStep('risk_result');
+      clearTyping();
+      addAgentBubble('risk_result', JSON.parse(e.data));
+      setTyping('总结 Agent 思考中…');
+    });
+    source.addEventListener('final_report', e => {
+      markStep('final_report');
+      clearTyping();
+      addAgentBubble('final_report', JSON.parse(e.data));
+    });
+    source.addEventListener('failed', e => {
+      failed = true;
+      clearTyping();
+      addError(JSON.parse(e.data));
+      setStatus('error', '分析失败');
+    });
+    source.addEventListener('done', () => {
+      if (finished) return;
+      finished = true;
+      clearTyping();
+      ORDER.forEach(k => setStep(k, 'done'));
+      source.close();
+      finishRun(!failed);
+    });
+    source.onerror = () => {
+      if (finished) return;
+      finished = true;
+      source.close();
+      clearTyping();
+      if (!failed) addError('连接中断或服务不可用，请确认已启动：python main.py');
+      finishRun(!failed);
+    };
+  }
+
+  newChatBtn.addEventListener('click', () => {
+    if (busy) return;
+    chat.innerHTML = '';
+    addWelcome();
+    threadId = 'thr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem('ds_thread_id', threadId);
+    resetSteps();
+    setStatus('ok', '就绪');
+    input.focus();
+  });
+
+  sendBtn.addEventListener('click', () => send());
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+  });
+  document.addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (chip && chip.dataset.q && !busy) {
+      input.value = chip.dataset.q;
+      send(chip.dataset.q);
+    }
+  });
+
+  // ---- 代码上传 ----
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.cpp,.h,.hpp,.cc';   // 与 .env 的 CODE_SUFFIXES 保持一致
+  fileInput.style.display = 'none';
+  document.body.appendChild(fileInput);
+
+  let uploadedFile = null; // { file_id, file_name }
+
+  // 一次只分析一个来源：上传文件 或 本地示例，二者互斥
+  function setTarget() {
+    if (uploadedFile) {
+      targetText.textContent = '📄 当前分析：' + uploadedFile.file_name + '（已上传）';
+      removeFileBtn.style.display = 'block';
+    } else {
+      targetText.textContent = '📁 当前分析：test_demo/main.cpp（本地示例）';
+      removeFileBtn.style.display = 'none';
+    }
+  }
+  function clearUpload() {
+    uploadedFile = null;
+    fileInput.value = '';
+    setTarget();
+  }
+
+  uploadBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', async () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const resp = await fetch('/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_name: f.name, code_content: text })
+      });
+      const data = await resp.json();
+      if (data.file_id) {
+        uploadedFile = { file_id: data.file_id, file_name: data.file_name };
+        setTarget();
+        setStatus('ok', '已上传 ' + data.file_name);
+      } else {
+        addError(data.error || '上传失败');
+      }
+    } catch (err) {
+      addError('上传失败：' + err);
+    }
+  });
+
+  removeFileBtn.addEventListener('click', clearUpload);
+
+  setTarget(); // 初始显示本地示例
+
+  addWelcome();
+  input.focus();
+})();
+</script>
+</body>
+</html>
