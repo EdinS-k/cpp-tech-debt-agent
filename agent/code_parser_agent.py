@@ -1,7 +1,5 @@
 # agent/code_parser_agent.py
 """Agent 核心层：① 代码解析 Agent
-
-职责：拿到源码 → 提取函数清单 / 代码异味 / 技术债务线索。
 """
 import logging
 

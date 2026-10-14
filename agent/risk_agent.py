@@ -1,17 +1,5 @@
 # agent/risk_agent.py
 """Agent 核心层：② 风险评估 Agent（自主调用工具版）
-
-与上一版的区别：
-
-  上一版：代码【写死】先调 hybrid_search + query_history，再让 LLM 评估。
-  这一版：把工具【绑定】给大模型，由模型自己决定——
-           · 用哪个检索策略？（语义 / 关键词 / 混合 / 结构化查询）
-           · 检索几次？
-           · 到底需不需要检索？
-
-想加新检索策略：
-  ① 在 tools/retrieval_tools.py 加一个 @tool
-  ② 把它加进下面的 AGENT_TOOLS —— 就完成了，其他文件不用动。
 """
 import logging
 import re

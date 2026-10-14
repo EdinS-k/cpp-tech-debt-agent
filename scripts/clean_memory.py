@@ -1,14 +1,6 @@
-"""查看 / 清理长期记忆（debt_memory 表）。
+"""查看 / 清理长期记忆（debt_memory 表），裸 SQL 直连，不依赖项目代码。
 
-用法（项目根目录）：
-    python scripts/clean_memory.py                     # 健康检查 + 按文件列出
-    python scripts/clean_memory.py --show main.cpp     # 看某文件的具体记录
-    python scripts/clean_memory.py --delete main.cpp   # 删掉某文件的全部记录
-    python scripts/clean_memory.py --delete-all        # 清空整张表
-
-说明：本脚本故意【不依赖】项目的 resources / tools ——
-      它用裸 SQL 直连数据库。这样即使 app 代码出了问题，
-      也能拿它来排查和救火（独立性 > 复用）。
+用法：python scripts/clean_memory.py [--show 文件 | --delete 文件 | --delete-all]
 """
 import sys
 from pathlib import Path

@@ -1,9 +1,6 @@
 """测试债务条目的批内去重（用假 store，不需要数据库）。
 
 用法：python scripts/test_dedup.py
-
-技巧：先把 resources.sqlserver_store 换成假模块塞进 sys.modules，
-      这样 rag_pipeline 在 import 时就不会真的去连数据库。
 """
 import sys
 import types

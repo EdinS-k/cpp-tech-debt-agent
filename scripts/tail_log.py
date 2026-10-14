@@ -1,10 +1,6 @@
 """实时跟踪日志文件（相当于 Linux 的 tail -f）。
 
-用法（cmd / PowerShell 都能用）：
-    python scripts/tail_log.py          # 显示最后 30 行 + 实时跟踪
-    python scripts/tail_log.py 100      # 显示最后 100 行 + 实时跟踪
-
-按 Ctrl+C 退出。
+用法：python scripts/tail_log.py [行数]     # 默认 30 行，Ctrl+C 退出
 """
 import sys
 import time

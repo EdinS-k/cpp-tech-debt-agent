@@ -1,19 +1,5 @@
 # resources/sqlserver_store.py
 """底层资源层：SQL Server 长期记忆（结构化 + 向量，一张表搞定）。
-
-表 dbo.debt_memory 同时承担三件事：
-  · 结构化字段（风险等级/位置/问题/建议） → 精确查询
-  · content 全文                          → BM25 关键词检索
-  · embedding VECTOR(384)                 → 向量语义检索（VECTOR_DISTANCE）
-
-★ 写入语义是【整体替换】：
-    每次分析完某个文件，就用本次结果替换掉它原有的记录。
-    为什么要替换而不是追加？
-      同一文件反复分析会不断堆积副本，检索 top-3 会被自己的副本占满，
-      等于什么都没召回。所以记忆里始终只保留它【当前】的债务清单。
-
-注：SQL Server 2025 的 vector 类型与 VECTOR_DISTANCE 是正式版功能；
-    数据量 < 5 万条时用精确搜索即可，无需预览版的向量索引。
 """
 import pyodbc
 

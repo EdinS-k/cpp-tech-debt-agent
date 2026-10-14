@@ -1,15 +1,5 @@
 # logging_config.py
-"""统一日志配置：同时输出到【控制台】和【文件】。
-
-为什么值得单独一个文件？
-  · 控制台看着爽，但窗口一关、或者被刷屏滚上去，就找不回来了
-  · 文件日志能回查 —— "刚才那次分析，模型到底选了哪个工具？"
-
-日志文件：logs/app.log
-  · 超过 5MB 自动切割，最多保留 5 份历史（app.log.1 / .2 ...）
-  · 控制台用精简格式（方便盯每一步）
-  · 文件用详细格式（带模块名和行号，方便定位）
-"""
+"""统一日志配置：控制台 + 文件双输出（logs/app.log，超 5MB 自动切割）。"""
 import logging
 import sys
 from logging.handlers import RotatingFileHandler

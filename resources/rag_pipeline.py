@@ -1,18 +1,8 @@
 # resources/rag_pipeline.py
-"""底层资源层：RAG 流水线。
-
-  · 向量检索 → SQL Server 的 VECTOR_DISTANCE（精确 kNN）
-  · 关键词检索 → BM25（Python 侧计算，语料取自 SQL Server）
-  · 融合 → RRF（倒数排名融合）
-"""
+"""底层资源层：RAG 流水线（向量检索 + BM25 + RRF 融合）。"""
 import re
 
 from rank_bm25 import BM25Okapi
-
-# 注意：这里【故意不】在模块顶层 import sqlserver_store。
-# 那会在 import 的瞬间就尝试连数据库，导致本模块无法脱离数据库被单独测试。
-# 改成惰性 import —— 第一次真正需要时才连。
-
 
 def tokenize(text: str):
     """BM25 分词：英文标识符 + 中文二元组(bigram)，兼顾代码与中文。"""

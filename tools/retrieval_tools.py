@@ -1,8 +1,5 @@
 # tools/retrieval_tools.py
-"""工具层：检索策略。
-
-想加新策略，在这里再加一个 @tool 函数即可（Agent 按需选用）。
-"""
+"""工具层：检索策略（向量 / BM25 / 混合）。"""
 from langchain.tools import tool
 
 from config import RETRIEVE_TOP_K

@@ -1,10 +1,7 @@
-"""初始化 SQL Server：建库 + 建表（含向量列）。
+"""初始化 SQL Server：建库 + 建表。
 
-用法（在项目根目录执行）：
-    python scripts/init_sqlserver.py            # 建库建表；老表缺列会自动补
-    python scripts/init_sqlserver.py --reset    # 删表重建（清空所有历史记录）
-
-前提：已在「SQL Server 配置管理器」里启用 TCP/IP 并重启 SQL Server 服务。
+用法：python scripts/init_sqlserver.py [--reset]
+前提：已在「SQL Server 配置管理器」启用 TCP/IP 并重启服务。
 """
 import sys
 from pathlib import Path

@@ -1,12 +1,5 @@
 # agent/summary_agent.py
 """Agent 核心层：③ 总结 Agent
-
-职责：把前面的结果汇总成报告，并用本次结果【整体替换】该文件的长期记忆。
-
-★ 两条分支都会写记忆：
-  · 详细分支（有高风险）→ 调 LLM 生成完整报告
-  · 简短分支（无高风险）→ 不调 LLM，直接给一句话结论
-
 """
 import json
 import logging

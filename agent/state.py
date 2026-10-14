@@ -1,6 +1,5 @@
 # agent/state.py
 """Agent 核心层：LangGraph 的状态定义（也就是各 Agent 共享的"黑板"）。
-
 单独放一个文件，是为了让 3 个 Agent 和编排图都能引用它，又不产生循环 import。
 """
 from typing import TypedDict, Annotated

@@ -1,8 +1,5 @@
 # resources/embedding.py
 """底层资源层：文本向量化。
-
-用 ChromaDB 内置的 all-MiniLM-L6-v2（本地 ONNX，384 维）——
-这里只**借用它的 embedding 函数**，不再使用它的数据库功能。
 """
 from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 

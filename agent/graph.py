@@ -1,12 +1,5 @@
 # agent/graph.py
-"""Agent 核心层：把节点编排成一张 LangGraph 状态图。
-
-                      ┌─[不是代码]──────────────────────────────► END
-    START ─► ⓪预检 ─┤
-                      └─[是代码]─► ①代码解析 ─► ②风险评估 ─┬─[有高风险]─► ③详细总结 ─┐
-                                                            └─[无高风险]─► 简短总结 ─┴─► END
-
-"""
+"""Agent 核心层：把节点编排成一张 LangGraph 状态图。"""
 import logging
 
 from langgraph.graph import StateGraph, START, END
